@@ -1,3 +1,5 @@
+该项目为克隆项目，原项目github地址：https://github.com/winstonjs/winston
+项目内容相对于原项目有修改。
 # winston [![Build Status](https://secure.travis-ci.org/flatiron/winston.svg?branch=master)](http://travis-ci.org/flatiron/winston)
 
 A multi-transport async logging library for node.js. <span style="font-size:28px; font-weight:bold;">&quot;CHILL WINSTON! ... I put it in the logs.&quot;</span>
@@ -48,19 +50,31 @@ There are two different ways to use winston: directly via the default logger, or
 
 ### Using the Default Logger
 The default logger is accessible through the winston module directly. Any method that you could call on an instance of a logger is available on the default logger:
+缺省的logger直接通过winston模块访问。
 
 ``` js
   var winston = require('winston');
 
   winston.log('info', 'Hello distributed log files!');
   winston.info('Hello again distributed logs');
+
+  // 结果:
+  // info: Hello distributed log files!
+  // info: Hello again distributed logs
 ```
 
 By default, only the Console transport is set on the default logger. You can add or remove transports via the add() and remove() methods:
 
 ``` js
+  var winston = require('winston');
   winston.add(winston.transports.File, { filename: 'somefile.log' });
   winston.remove(winston.transports.Console);
+  winston.log('info', 'Hello distributed log files!');
+  winston.info('Hello again distributed logs');
+
+  // 结果，在控制台没有了输出，在脚本的相同路径下会生成一个somefile.log的文件，内容如下：
+  {"level":"info","message":"Hello distributed log files!","timestamp":"2015-02-22T03:23:19.301Z"}
+  {"level":"info","message":"Hello again distributed logs","timestamp":"2015-02-22T03:23:19.304Z"}
 ```
 
 For more documentation about working with each individual transport supported by Winston see the [Working with transports](#working-with-transports) section below.
@@ -69,36 +83,30 @@ For more documentation about working with each individual transport supported by
 If you would prefer to manage the object lifetime of loggers you are free to instantiate them yourself:
 
 ``` js
+  var winston = require('winston');
   var logger = new (winston.Logger)({
-    transports: [
-      new (winston.transports.Console)(),
-      new (winston.transports.File)({ filename: 'somefile.log' })
-    ]
+      transports: [
+          new (winston.transports.Console)()/*,
+           new (winston.transports.File)({filename:'somefile.log'})*/
+      ]
   });
-```
-
-You can work with this logger in the same way that you work with the default logger:
-
-``` js
-  //
-  // Logging
-  //
+  logger.add(winston.transports.File, {filename: 'somefile.log'})
+      .remove(winston.transports.Console);
   logger.log('info', 'Hello distributed log files!');
   logger.info('Hello again distributed logs');
 
-  //
-  // Adding / Removing Transports
-  //   (Yes It's chainable)
-  //
-  logger.add(winston.transports.File)
-        .remove(winston.transports.Console);
+  // 运行结果与上面的相同，控制台没有输出，只在somfile.log里输出。
 ```
 
 ### Logging with Metadata
 In addition to logging string messages, winston will also optionally log additional JSON metadata objects. Adding metadata is simple:
 
 ``` js
+  var winston = require('./lib/winston');
   winston.log('info', 'Test Log Message', { anything: 'This is metadata' });
+
+  // 结果
+  // info: Test Log Message anything=This is metadata
 ```
 
 The way these objects are stored varies from transport to transport (to best support the storage mechanisms offered). Here's a quick summary of how each transports handles metadata:
@@ -106,36 +114,62 @@ The way these objects are stored varies from transport to transport (to best sup
 1. __Console:__ Logged via util.inspect(meta)
 2. __File:__ Logged via util.inspect(meta)
 
+``` js
+  var winston = require('./lib/winston');
+  var util = require('util');
+  winston.log('info', 'Test Log Message', {anything: 'This is metadata'});
+  winston.info(util.inspect({anything:'this is metadata'}));
+
+  // 结果
+  // info: Test Log Message anything=This is metadata
+  // info: { anything: 'This is metadata' }
+```
+
 ## Multiple transports of the same type
 
 It is possible to use multiple transports of the same type e.g. `winston.transports.File` by passing in a custom `name` when you construct the transport.
 
 ``` js
-var logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.File)({
-      name: 'info-file',
-      filename: 'filelog-info.log',
-      level: 'info'
-    }),
-    new (winston.transports.File)({
-      name: 'error-file',
-      filename: 'filelog-error.log',
-      level: 'error'
-    })
-  ]
-});
+  var winston = require('./lib/winston');
+  var logger = new (winston.Logger)({
+      transports:[
+          new (winston.transports.File)({
+              name:'info-file',
+              filename:'filelog-info.log',
+              level:'info'
+          }),
+          new (winston.transports.File)({
+              name:'error-file',
+              filename:'filelog-error.log',
+              level:'error'
+          })
+      ]
+  });
+  logger.info('this is info log.');
+  logger.error('this is error log.');
+
+  // 结果
+  // filelog-info.log文件内容
+  // {"level":"info","message":"this is info log.","timestamp":"2015-02-22T04:46:10.187Z"}
+  // {"level":"error","message":"this is error log.","timestamp":"2015-02-22T04:46:10.190Z"}
+
+  // filelog-error.log文件内容
+  // {"level":"error","message":"this is error log.","timestamp":"2015-02-22T04:46:10.190Z"}
 ```
 
 If you later want to remove one of these transports you can do so by using the string name. e.g.:
 
 ``` js
 logger.remove('info-file');
+
+// 结果（先将两个日志文件清空便于观察结果）
+// filelog-info.log文件没有输出任何内容，filelog-error.log文件只有error级别的日志输出。
 ```
 
 In this example one could also remove by passing in the instance of the Transport itself. e.g. this is equivalent to the string example above;
 
-```
+``` js
+// 该方法我没有测试成功
 // Notice it was first in the Array above
 var infoFile = logger.transports[0];
 logger.remove(infoFile);
@@ -167,33 +201,40 @@ The `log` method provides the same string interpolation methods like [`util.form
 
 This allows for the following log messages.
 ``` js
-logger.log('info', 'test message %s', 'my string');
-// info: test message my string
+  var winston = require('./lib/winston');
+  var logger = new (winston.Logger)({
+      transports: [new winston.transports.Console()]
+  });
 
-logger.log('info', 'test message %d', 123);
-// info: test message 123
+  logger.log('info', 'test message %s', 'my string');
+  // info: test message my string
 
-logger.log('info', 'test message %j', {number: 123}, {});
-// info: test message {"number":123}
-// meta = {}
+  logger.log('info', 'test message %d', 123);
+  // info: test message 123
 
-logger.log('info', 'test message %s, %s', 'first', 'second', {number: 123});
-// info: test message first, second
-// meta = {number: 123}
+  logger.log('info', 'test message %j', {number: 123}, {});
+  // info: test message {"number":123}
+  // meta = {}
 
-logger.log('info', 'test message', 'first', 'second', {number: 123});
-// info: test message first second
-// meta = {number: 123}
+  logger.log('info', 'test message %s, %s', 'first', 'second', {number: 123});
+  // info: test message first, second number=123
+  // meta = {number: 123}
 
-logger.log('info', 'test message %s, %s', 'first', 'second', {number: 123}, function(){});
-// info: test message first, second
-// meta = {numer: 123}
-// callback = function(){}
+  logger.log('info', 'test message', 'first', 'second', {number: 123});
+  // info: test message first second number=123
+  // meta = {number: 123}
 
-logger.log('info', 'test message', 'first', 'second', {number: 123}, function(){});
-// info: test message first second
-// meta = {numer: 123}
-// callback = function(){}
+  logger.log('info', 'test message %s, %s', 'first', 'second', {number: 123}, function () {
+  });
+  // info: test message first, second number=123
+  // meta = {numer: 123}
+  // callback = function(){}
+
+  logger.log('info', 'test message', 'first', 'second', {number: 123}, function () {
+  });
+  // info: test message first second number=123
+  // meta = {numer: 123}
+  // callback = function(){}
 ```
 
 
