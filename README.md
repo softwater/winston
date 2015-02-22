@@ -1,4 +1,5 @@
 该项目为克隆项目，原项目github地址：https://github.com/winstonjs/winston
+
 项目内容相对于原项目有修改。
 # winston [![Build Status](https://secure.travis-ci.org/flatiron/winston.svg?branch=master)](http://travis-ci.org/flatiron/winston)
 
@@ -48,9 +49,10 @@ There are two different ways to use winston: directly via the default logger, or
 
 ## Logging
 
-### Using the Default Logger
+### Using the Default Logger（使用默认的Logger）
 The default logger is accessible through the winston module directly. Any method that you could call on an instance of a logger is available on the default logger:
-缺省的logger直接通过winston模块访问。
+
+缺省的logger直接通过winston模块访问。winston默认的日志记录拥有logger实例的所有方法。
 
 ``` js
   var winston = require('winston');
@@ -64,6 +66,8 @@ The default logger is accessible through the winston module directly. Any method
 ```
 
 By default, only the Console transport is set on the default logger. You can add or remove transports via the add() and remove() methods:
+
+默认的，日志记录只输出在控制台上。可以通过add()和remove()方法来增加和删除日志记录方式。
 
 ``` js
   var winston = require('winston');
@@ -79,8 +83,10 @@ By default, only the Console transport is set on the default logger. You can add
 
 For more documentation about working with each individual transport supported by Winston see the [Working with transports](#working-with-transports) section below.
 
-### Instantiating your own Logger
+### Instantiating your own Logger（实例化自己的Logger）
 If you would prefer to manage the object lifetime of loggers you are free to instantiate them yourself:
+
+若想要管理loggers的生命周期可以自由的实例化它们。
 
 ``` js
   var winston = require('winston');
@@ -102,7 +108,7 @@ If you would prefer to manage the object lifetime of loggers you are free to ins
 In addition to logging string messages, winston will also optionally log additional JSON metadata objects. Adding metadata is simple:
 
 ``` js
-  var winston = require('./lib/winston');
+  var winston = require('winston');
   winston.log('info', 'Test Log Message', { anything: 'This is metadata' });
 
   // 结果
@@ -115,7 +121,7 @@ The way these objects are stored varies from transport to transport (to best sup
 2. __File:__ Logged via util.inspect(meta)
 
 ``` js
-  var winston = require('./lib/winston');
+  var winston = require('winston');
   var util = require('util');
   winston.log('info', 'Test Log Message', {anything: 'This is metadata'});
   winston.info(util.inspect({anything:'this is metadata'}));
@@ -130,7 +136,7 @@ The way these objects are stored varies from transport to transport (to best sup
 It is possible to use multiple transports of the same type e.g. `winston.transports.File` by passing in a custom `name` when you construct the transport.
 
 ``` js
-  var winston = require('./lib/winston');
+  var winston = require('winston');
   var logger = new (winston.Logger)({
       transports:[
           new (winston.transports.File)({
@@ -159,14 +165,19 @@ It is possible to use multiple transports of the same type e.g. `winston.transpo
 
 If you later want to remove one of these transports you can do so by using the string name. e.g.:
 
+可以使用自定义的name字符串来删除其中的某种记录方式。
+
 ``` js
+// 该方法放在输出日志之前调用
 logger.remove('info-file');
 
-// 结果（先将两个日志文件清空便于观察结果）
+// 结果（先将两个日志文件清空再运行脚本，以便于观察结果）
 // filelog-info.log文件没有输出任何内容，filelog-error.log文件只有error级别的日志输出。
 ```
 
 In this example one could also remove by passing in the instance of the Transport itself. e.g. this is equivalent to the string example above;
+
+也可以通过传递日志记录方式的实例本身来删除。如，下面的等价于上面的方法：
 
 ``` js
 // 该方法我没有测试成功
@@ -201,7 +212,7 @@ The `log` method provides the same string interpolation methods like [`util.form
 
 This allows for the following log messages.
 ``` js
-  var winston = require('./lib/winston');
+  var winston = require('winston');
   var logger = new (winston.Logger)({
       transports: [new winston.transports.Console()]
   });
@@ -236,10 +247,6 @@ This allows for the following log messages.
   // meta = {numer: 123}
   // callback = function(){}
 ```
-
-
-
-
 
 ## Querying Logs
 Winston supports querying of logs with Loggly-like options. [See Loggly Search API](http://wiki.loggly.com/retrieve_events#optional).
@@ -360,15 +367,22 @@ The `exitOnError` option can also be a function to prevent exit on only certain 
   logger.exitOnError = ignoreEpipe;
 ```
 
-## Logging Levels
+## Logging Levels(日志等级)
 
-### Using Logging Levels
+### Using Logging Levels(使用日志等级)
 Setting the level for your logging message can be accomplished in one of two ways. You can pass a string representing the logging level to the log() method or use the level specified methods defined on every winston Logger.
 
+有两种技巧设置日志的等级。可以向log()方法传递一个字符串来说明日志等级，或者只用每种等级特定的方法。
+
 ``` js
-  //
+  var winston = require('../lib/winston');
+  var logger = new (winston.Logger)({
+      transports: [
+          new winston.transports.Console
+      ]
+  });
+
   // Any logger instance
-  //
   logger.log('silly', "127.0.0.1 - there's no place like home");
   logger.log('debug', "127.0.0.1 - there's no place like home");
   logger.log('verbose', "127.0.0.1 - there's no place like home");
@@ -379,14 +393,14 @@ Setting the level for your logging message can be accomplished in one of two way
   logger.warn("127.0.0.1 - there's no place like home");
   logger.error("127.0.0.1 - there's no place like home");
 
-  //
   // Default logger
-  //
   winston.log('info', "127.0.0.1 - there's no place like home");
   winston.info("127.0.0.1 - there's no place like home");
 ```
 
 Winston allows you to set a `level` on each transport that specifies the level of messages this transport should log. For example, you could log only errors to the console, with the full logs in a file (note that the default level of a transport is `info`):
+
+Winston allows you to set a `level` on each transport that specifies the level of messages this transport should log.如，可以只将error级别日志输出到控制台，而所有的日志又记录到文件中（注意：所有记录方式的默认级别都是info）：
 
 ``` js
   var logger = new (winston.Logger)({
